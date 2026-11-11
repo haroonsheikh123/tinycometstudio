@@ -17,7 +17,7 @@ Branch: `admin-panel`. Spec: `docs/ADMIN_SPEC.md` (founder's requirements; plus:
 - `public/_routes.json`, `lib/site-headers.js`, build writes `lib/site.generated.js` (ASSET_VERSION).
 - Tools: `tools/db-seed.mjs` (content/ → D1 SQL), `tools/content-sync.mjs` (pull/push via API), `tools/dev/d1-shim.mjs` (node:sqlite D1 + R2 mock).
 - Tests harness `tests/helpers.mjs`; smoke flow works in Node. Existing 18 tests pass.
-- Admin UI started: `public/admin/index.html`, `assets/admin.css`, `assets/ui.js`.
+- Admin UI: shell + auth screens (app.js), views: dashboard, analytics, games, news, media, team, pages, messages, settings, _shared.
 
 ## In progress / next
 1. `public/admin/assets/app.js` (router, shell, auth screens) + `assets/views/*.js` (dashboard, analytics, games, news, media, team,
