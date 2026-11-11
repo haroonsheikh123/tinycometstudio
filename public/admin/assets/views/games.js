@@ -55,7 +55,7 @@ async function editor(id, go) {
     const d = formData(f);
     const out = {
       title: d.title.trim(), tagline: d.tagline, kind: d.kind, releaseDate: d.releaseDate.trim(), genres: d.genres.split(",").map((s) => s.trim()).filter(Boolean),
-      platforms: PLATFORMS.filter((p) => d[`pf_${p}`]), colors: [d.color1, d.color2], description: paras(d.description), cover: d.cover.trim(), trailer: d.trailer.trim(),
+      platforms: PLATFORMS.filter((p) => d[`pf_${p}`]), colors: [d.color1, d.color2].map((c, i) => (g.colors?.[i] && g.colors[i].toLowerCase() === c.toLowerCase() ? g.colors[i] : c)), description: paras(d.description), cover: d.cover.trim(), trailer: d.trailer.trim(),
       screenshots: lines(d.screenshots).map((l) => { const [src, alt] = l.split("|").map((s) => s.trim()); return alt ? { src, alt } : src; }),
       links: { android: d.link_android.trim(), ios: d.link_ios.trim(), steam: d.link_steam.trim(), itch: d.link_itch.trim() }, placeholder: d.placeholder
     };
