@@ -1,0 +1,56 @@
+{
+  "studioName": "Tiny Comet Studio",
+  "shortName": "Tiny Comet",
+  "siteUrl": "https://tinycometstudio.com",
+  "tagline": "Small studio. Big little worlds.",
+  "description": "Tiny Comet Studio is a small indie team from Pakistan, led by Haroon Sheikh, making colourful, friendly games and apps for mobile and PC.",
+  "country": "Pakistan",
+  "contactEmail": "hello@tinycometstudio.com",
+  "pressEmail": "press@tinycometstudio.com",
+  "turnstileSiteKey": "1x00000000000000000000AA",
+  "analyticsEndpoint": "",
+  "socials": [
+    { "id": "itch", "label": "itch.io", "url": "#" },
+    { "id": "steam", "label": "Steam", "url": "#" },
+    { "id": "googleplay", "label": "Google Play", "url": "#" },
+    { "id": "appstore", "label": "App Store", "url": "#" },
+    { "id": "x", "label": "X / Twitter", "url": "#" },
+    { "id": "instagram", "label": "Instagram", "url": "#" },
+    { "id": "youtube", "label": "YouTube", "url": "#" },
+    { "id": "discord", "label": "Discord", "url": "#" }
+  ],
+  "hero": {
+    "eyebrow": "Indie games & apps · Made in Pakistan",
+    "titleLine1": "Small studio.",
+    "titleLine2": "Big little worlds.",
+    "lead": "We're Tiny Comet — a small, independent team crafting cozy, colourful games and thoughtfully built apps for phones and PCs. Easy to pick up, kind to your time, and a little bit magical."
+  },
+  "about": {
+    "title": "A small team with a big soft spot for play",
+    "lead": "Tiny Comet Studio is an independent team based in Pakistan, founded by Haroon Sheikh.",
+    "paragraphs": [
+      "We started Tiny Comet because we love the feeling of a great little game or a genuinely useful app — the kind you open on the bus, smile at, and come back to tomorrow. We're small on purpose: it keeps us close to every detail, and close to the people who play what we make.",
+      "Everything we build is designed, coded and polished in-house, and we share the journey as we go. If you like what you see, come say hi — we read every message."
+    ]
+  },
+  "expertise": [
+    { "icon": "phone", "title": "Mobile apps", "text": "Native-feeling apps for iOS and Android, designed for real everyday use." },
+    { "icon": "gamepad", "title": "Games", "text": "Bite-sized, joyful games for mobile and PC with plenty of charm." },
+    { "icon": "layers", "title": "Cross-platform", "text": "One codebase, many screens — phones, tablets, desktop and the web." },
+    { "icon": "palette", "title": "UI / UX design", "text": "Friendly, clear interfaces that feel good the moment you tap them." },
+    { "icon": "rocket", "title": "Publishing & updates", "text": "App Store and Google Play releases, plus ongoing updates after launch." }
+  ],
+  "press": {
+    "facts": [
+      { "label": "Studio", "value": "Tiny Comet Studio" },
+      { "label": "Based in", "value": "Pakistan" },
+      { "label": "Founder", "value": "Haroon Sheikh" },
+      { "label": "Founded", "value": "[PLACEHOLDER: year]", "placeholder": true },
+      { "label": "Team size", "value": "[PLACEHOLDER: e.g. 3 people]", "placeholder": true },
+      { "label": "Platforms", "value": "iOS, Android, PC, Web" },
+      { "label": "Website", "value": "tinycometstudio.com" },
+      { "label": "Press contact", "value": "press@tinycometstudio.com" }
+    ],
+    "boilerplate": "Tiny Comet Studio is a small independent games and apps studio from Pakistan, founded by Haroon Sheikh. The team designs, builds and publishes colourful, friendly games and apps for mobile, PC and the web."
+  }
+}

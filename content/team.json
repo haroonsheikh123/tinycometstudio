@@ -1,0 +1,49 @@
+[
+  {
+    "id": "haroon-sheikh",
+    "name": "Haroon Sheikh",
+    "role": "Founder & Lead Developer",
+    "featured": true,
+    "placeholder": false,
+    "photo": "",
+    "bio": [
+      "Haroon is the founder of Tiny Comet Studio and leads development across everything we make. He has extensive, hands-on experience building apps end to end — from the first sketch and UI design, through development, to publishing and updating on the App Store and Google Play.",
+      "That same full-stack app know-how now goes into our games: polished, friendly products that feel great on a phone and on a PC. [PLACEHOLDER: add a personal line about what got you into making apps and games.]"
+    ],
+    "links": [
+      { "label": "GitHub", "url": "https://github.com/haroonsheikh123" },
+      { "label": "LinkedIn", "url": "#" },
+      { "label": "X / Twitter", "url": "#" }
+    ]
+  },
+  {
+    "id": "member-1",
+    "name": "Team member",
+    "role": "Game Artist",
+    "featured": false,
+    "placeholder": true,
+    "photo": "",
+    "bio": ["PLACEHOLDER — a sentence about what this person brings to the team."],
+    "links": []
+  },
+  {
+    "id": "member-2",
+    "name": "Team member",
+    "role": "Developer",
+    "featured": false,
+    "placeholder": true,
+    "photo": "",
+    "bio": ["PLACEHOLDER — a sentence about what this person brings to the team."],
+    "links": []
+  },
+  {
+    "id": "member-3",
+    "name": "Team member",
+    "role": "Sound & Music",
+    "featured": false,
+    "placeholder": true,
+    "photo": "",
+    "bio": ["PLACEHOLDER — a sentence about what this person brings to the team."],
+    "links": []
+  }
+]

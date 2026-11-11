@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex">
+<title>Project Nova — demo · Tiny Comet Studio</title>
+<link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+<!-- PLACEHOLDER DEMO BUILD. Replace everything in this folder with your real HTML5/WebGL export
+     (it must have an index.html). See README → "Play in browser". -->
+<style>
+  html, body { margin: 0; height: 100%; background: #0E0F2C; color: #FFF8EC; font-family: system-ui, sans-serif; overflow: hidden; touch-action: none; }
+  canvas { display: block; width: 100vw; height: 100vh; cursor: none; }
+  .hud { position: fixed; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; font-weight: 700; font-size: 18px; }
+  .hud a { pointer-events: auto; color: #FFE07A; text-decoration: none; background: rgba(255,255,255,.08); padding: 8px 14px; border-radius: 999px; font-size: 15px; }
+  .hud a:focus-visible { outline: 3px solid #FFE07A; outline-offset: 2px; }
+  .overlay { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; background: rgba(14,15,44,.72); }
+  .overlay[hidden] { display: none; }
+  .overlay h1 { font-size: clamp(28px, 6vw, 48px); margin: 0 0 8px; }
+  .overlay p { margin: 0 0 20px; opacity: .85; }
+  .overlay button { font: inherit; font-weight: 800; font-size: 18px; padding: 14px 28px; border: 0; border-radius: 999px; background: linear-gradient(135deg, #FFE07A, #FF9A3C); color: #17183F; cursor: pointer; }
+  .overlay button:focus-visible { outline: 3px solid #FFF8EC; outline-offset: 3px; }
+</style>
+<script src="game.js" defer></script>
+</head>
+<body>
+<canvas id="game" aria-label="Catch the stars game area"></canvas>
+<div class="hud"><span id="score" aria-live="polite">★ 0</span><span id="time">30s</span><a href="/project-nova/">✕ Exit</a></div>
+<div class="overlay" id="overlay">
+  <div>
+    <h1 id="ov-title">Catch the stars!</h1>
+    <p id="ov-text">Move the little comet with your mouse or finger. You have 30 seconds.</p>
+    <button id="start" type="button">Play</button>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Cloudflare Pages redirects. https://developers.cloudflare.com/pages/configuration/redirects/
+# (/<slug>/play → /<slug>/play/ is handled by the play middleware.)
+/home          /             301
+/games         /#games       302
+/about         /#about       302
+/contact       /#contact     302
+/blog          /news/        301
+/rss           /news/feed.xml 301
+/feed          /news/feed.xml 301
+/presskit      /press/       301
+/privacy.html  /privacy/     301
+/blog/*        /news/:splat  301

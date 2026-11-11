@@ -1,0 +1,11 @@
+# Cloudflare Pages project config (used by `npx wrangler pages dev` / `deploy`).
+# Secrets (TURNSTILE_SECRET, SIGNING_KEY) are NOT stored here — see README.
+name = "tinycometstudio"
+pages_build_output_dir = "public"
+compatibility_date = "2025-09-01"
+
+[vars]
+# How long a solved captcha unlocks web play for (hours, max 24).
+PLAY_TTL_HOURS = "4"
+# Hostnames Turnstile tokens may come from (comma-separated). Leave empty to accept the request's own host.
+ALLOWED_HOSTNAMES = ""

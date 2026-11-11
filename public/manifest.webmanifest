@@ -1,0 +1,27 @@
+{
+  "name": "Tiny Comet Studio",
+  "short_name": "Tiny Comet",
+  "description": "Tiny Comet Studio is a small indie team from Pakistan, led by Haroon Sheikh, making colourful, friendly games and apps for mobile and PC.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#17183F",
+  "theme_color": "#17183F",
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

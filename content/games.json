@@ -1,0 +1,69 @@
+[
+  {
+    "id": "project-nova",
+    "placeholder": true,
+    "title": "Project Nova",
+    "tagline": "A tiny comet, a very big sky.",
+    "kind": "Game",
+    "status": "in-development",
+    "platforms": ["android", "ios", "steam", "web"],
+    "genres": ["Arcade", "Casual"],
+    "colors": ["#6C4BFF", "#FF5E6E"],
+    "releaseDate": "",
+    "description": [
+      "PLACEHOLDER — Project Nova is a working title for an upcoming arcade game. Swap this text for a real description of your game: what the player does, what makes it feel special, and who it's for.",
+      "Two or three short paragraphs work best here. Keep it friendly and concrete — what will people actually do in the first five minutes?"
+    ],
+    "links": { "android": "", "ios": "", "steam": "", "itch": "" },
+    "webPlay": { "enabled": true },
+    "cover": "",
+    "screenshots": [],
+    "trailer": ""
+  },
+  {
+    "id": "orbit-garden",
+    "placeholder": true,
+    "title": "Orbit Garden",
+    "tagline": "Grow a cozy little planet, one seed at a time.",
+    "kind": "Game",
+    "status": "coming-soon",
+    "platforms": ["android", "ios"],
+    "genres": ["Cozy", "Puzzle"],
+    "colors": ["#1FB8A6", "#FFE07A"],
+    "releaseDate": "2027",
+    "description": [
+      "PLACEHOLDER — Orbit Garden is a sample entry. Describe your game here.",
+      "This entry demonstrates the \"coming soon\" status, \"coming soon\" store badges and a planned release year."
+    ],
+    "links": { "android": "", "ios": "", "steam": "", "itch": "" },
+    "webPlay": { "enabled": false },
+    "cover": "",
+    "screenshots": [],
+    "trailer": ""
+  },
+  {
+    "id": "stardust-notes",
+    "placeholder": true,
+    "title": "Stardust Notes",
+    "tagline": "A calm little notes app with a sprinkle of sparkle.",
+    "kind": "App",
+    "status": "released",
+    "platforms": ["android", "ios"],
+    "genres": ["Productivity", "Minimal"],
+    "colors": ["#FF9A3C", "#B44CFF"],
+    "releaseDate": "2026-06-01",
+    "description": [
+      "PLACEHOLDER — Stardust Notes is a sample app entry that demonstrates the \"released\" status, live store badges and a screenshot gallery.",
+      "Replace it with a real app, or delete it once you have your own entries. (The \"#\" store links are dummies.)"
+    ],
+    "links": { "android": "#", "ios": "#", "steam": "", "itch": "" },
+    "webPlay": { "enabled": false },
+    "cover": "",
+    "screenshots": [
+      { "src": "/assets/games/stardust-notes/shot-1.svg", "alt": "Placeholder screenshot 1" },
+      { "src": "/assets/games/stardust-notes/shot-2.svg", "alt": "Placeholder screenshot 2" },
+      { "src": "/assets/games/stardust-notes/shot-3.svg", "alt": "Placeholder screenshot 3" }
+    ],
+    "trailer": ""
+  }
+]

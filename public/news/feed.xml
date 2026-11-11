@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>Tiny Comet Studio News</title>
+  <link>https://tinycometstudio.com/news/</link>
+  <atom:link href="https://tinycometstudio.com/news/feed.xml" rel="self" type="application/rss+xml"/>
+  <description>News, devlogs and release notes from Tiny Comet Studio.</description>
+  <language>en</language>
+  <lastBuildDate>Tue, 10 Nov 2026 12:00:00 GMT</lastBuildDate>
+  <item>
+    <title>Stardust Notes 1.1 — small things, polished</title>
+    <link>https://tinycometstudio.com/news/stardust-notes-update/</link>
+    <guid isPermaLink="true">https://tinycometstudio.com/news/stardust-notes-update/</guid>
+    <pubDate>Tue, 10 Nov 2026 12:00:00 GMT</pubDate>
+    <category>Update</category>
+    <description><![CDATA[PLACEHOLDER — An example release-notes style update for an app.]]></description>
+  </item>
+  <item>
+    <title>Project Nova devlog #1: finding the fun</title>
+    <link>https://tinycometstudio.com/news/project-nova-devlog-1/</link>
+    <guid isPermaLink="true">https://tinycometstudio.com/news/project-nova-devlog-1/</guid>
+    <pubDate>Thu, 05 Nov 2026 12:00:00 GMT</pubDate>
+    <category>Devlog</category>
+    <description><![CDATA[PLACEHOLDER — An example devlog post that shows headings, lists, code, images and a YouTube embed.]]></description>
+  </item>
+  <item>
+    <title>Hello, world — meet Tiny Comet Studio</title>
+    <link>https://tinycometstudio.com/news/hello-world/</link>
+    <guid isPermaLink="true">https://tinycometstudio.com/news/hello-world/</guid>
+    <pubDate>Sun, 01 Nov 2026 12:00:00 GMT</pubDate>
+    <category>Announcement</category>
+    <description><![CDATA[PLACEHOLDER — A first hello from our small team in Pakistan: who we are, what we make and what's coming next.]]></description>
+  </item>
+</channel>
+</rss>

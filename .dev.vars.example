@@ -1,0 +1,5 @@
+# Copy to .dev.vars for local `npx wrangler pages dev` (never commit .dev.vars).
+# These are Cloudflare's official ALWAYS-PASS TEST keys — replace in production
+# (production values go in Cloudflare dashboard → Pages project → Settings → Variables and Secrets).
+TURNSTILE_SECRET=1x0000000000000000000000000000000AA
+SIGNING_KEY=local-dev-only-change-me-to-a-long-random-string
