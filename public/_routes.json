@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "description": "Static assets are served directly (no Function invocation). Everything else may be rendered from D1 or gated.",
+  "include": [
+    "/*"
+  ],
+  "exclude": [
+    "/css/*",
+    "/js/*",
+    "/assets/*",
+    "/admin/assets/*",
+    "/favicon.ico"
+  ]
+}
