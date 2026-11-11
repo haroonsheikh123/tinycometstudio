@@ -19,6 +19,9 @@ Branch: `admin-panel`. Spec: `docs/ADMIN_SPEC.md` (founder's requirements; plus:
 - Tests harness `tests/helpers.mjs`; smoke flow works in Node. Existing 18 tests pass.
 - Admin UI: shell + auth screens (app.js), views: dashboard, analytics, games, news, media, team, pages, messages, settings, _shared.
 
+- Unit tests: tests/admin-auth|admin-access|admin-audit.test.mjs (41 new; 59 total passing).
+- E2E: tests/e2e/admin-flow.mjs against wrangler pages dev — 33+/35 checks first run, fixed; screenshots in /home/user/tiny-comet-admin-screenshots/.
+
 ## In progress / next
 1. `public/admin/assets/app.js` (router, shell, auth screens) + `assets/views/*.js` (dashboard, analytics, games, news, media, team,
    messages, pages, settings, users, roles, keys, approvals, webhooks, audit, system, account, api-docs).

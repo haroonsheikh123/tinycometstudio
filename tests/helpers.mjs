@@ -2,7 +2,17 @@
 import { D1Shim, R2Mock } from "../tools/dev/d1-shim.mjs";
 import { buildSeedSql } from "../tools/db-seed.mjs";
 import { handleApi } from "../lib/admin/api.js";
-import { totp } from "../lib/admin/totp.js";
+import { totp, timeStep } from "../lib/admin/totp.js";
+
+/** A never-reused code (server rejects steps ≤ the last one used): current step, else the next one (±1 window). */
+const usedSteps = new Map();
+export function nextCode(secret) {
+  const last = usedSteps.get(secret) ?? -1, cur = timeStep();
+  const step = cur > last ? cur : last + 1;
+  if (step > cur + 1) throw new Error("test used more than 2 codes in one 30 s window");
+  usedSteps.set(secret, step);
+  return totp(secret, step * 30_000 + 500);
+}
 
 export const ORIGIN = "https://tinycometstudio.com";
 export const SETUP_TOKEN = "test-setup-token-0123456789abcdef";
@@ -40,8 +50,7 @@ export class Session {
     if (r.data?.csrf_token) this.csrf = r.data.csrf_token;
     return r;
   }
-  /** A fresh, never-used code (advances a fake clock by 30 s per call to dodge replay protection). */
-  async code() { this.clock += 31_000; return totp(this.secret, this.clock); }
+  code() { return nextCode(this.secret); }
 }
 
 /** setup → enroll → signed-in owner session */
@@ -51,7 +60,7 @@ export async function bootstrapOwner(env, { email = "haroon@tinycometstudio.com"
   if (r.status !== 201) throw new Error("setup failed " + r.text);
   const setup = await s.req("POST", "/auth/totp/setup", { body: { mfa_token: r.data.mfa_token } });
   s.secret = setup.data.secret;
-  const conf = await s.req("POST", "/auth/totp/confirm", { body: { mfa_token: r.data.mfa_token, code: await totp(s.secret) } });
+  const conf = await s.req("POST", "/auth/totp/confirm", { body: { mfa_token: r.data.mfa_token, code: await nextCode(s.secret) } });
   if (conf.status !== 200) throw new Error("confirm failed " + conf.text);
   s.recovery = conf.data.recovery_codes;
   s.password = password; s.email = email;
@@ -64,7 +73,7 @@ export async function login(env, email, password, secret) {
   s.secret = secret;
   const a = await s.req("POST", "/auth/login", { body: { email, password } });
   if (a.status !== 200) return { session: s, res: a };
-  const b = await s.req("POST", "/auth/mfa", { body: { mfa_token: a.data.mfa_token, code: await totp(secret) } });
+  const b = await s.req("POST", "/auth/mfa", { body: { mfa_token: a.data.mfa_token, code: await nextCode(secret) } });
   return { session: s, res: b };
 }
 
