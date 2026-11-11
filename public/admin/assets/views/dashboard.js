@@ -24,11 +24,14 @@ export default async function dashboard() {
       h("div", { class: "card" }, h("div", { class: "card__head" }, h("h2", null, "Traffic · last 30 days"), h("div", { class: "chart-legend" }, h("span", null, h("i"), "Page views"), h("span", null, h("i", { class: "l2" }), "Visitors"))),
         lineChart(a.series, { key: "page_views", key2: "visitors", label: "Page views and visitors over 30 days" }),
         h("p", { class: "small muted", style: { marginTop: "8px" } }, h("span", { class: "dot dot--ok" }), ` ${a.realtime} visitor(s) on the site right now · today: ${fmtNum(a.today.page_view || 0)} views, ${fmtNum(a.today.play_unlocked || 0)} captcha passes`)),
-      h("div", { class: "stack" }, h("div", { class: "card" }, h("h2", null, "Top pages"), barList(a.top_pages)), h("div", { class: "card" }, h("h2", null, "Top games"), barList(a.top_games)))));
+      h("div", { class: "card" }, h("h2", null, "Top pages"), barList(a.top_pages))));
   }
   const row = [];
-  if (d.messages) row.push(h("div", { class: "card" }, h("div", { class: "card__head" }, h("h2", null, "Latest messages ", d.messages.unread ? h("span", { class: "badge badge--info" }, `${d.messages.unread} new`) : null), h("a", { class: "btn btn--sm", href: "/admin/messages" }, "Inbox")),
+  const left = [];
+  if (d.analytics) left.push(h("div", { class: "card" }, h("h2", null, "Top games · 7 days"), barList(d.analytics.top_games)));
+  if (d.messages) left.push(h("div", { class: "card" }, h("div", { class: "card__head" }, h("h2", null, "Latest messages ", d.messages.unread ? h("span", { class: "badge badge--info" }, `${d.messages.unread} new`) : null), h("a", { class: "btn btn--sm", href: "/admin/messages" }, "Inbox")),
     d.messages.latest.length ? h("ul", { class: "list" }, d.messages.latest.map((m) => h("li", null, h("span", { class: ["dot", m.status === "new" && "dot--warn"] }), h("span", { class: "grow" }, h("b", null, m.name || m.email), " — ", m.preview), h("span", { class: "tiny muted" }, ago(m.created_at))))) : h("p", { class: "muted" }, "No messages yet.")));
+  if (left.length) row.push(h("div", { class: "stack" }, left));
   if (d.activity) row.push(h("div", { class: "card" }, h("div", { class: "card__head" }, h("h2", null, "Recent activity"), h("a", { class: "btn btn--sm", href: "/admin/audit" }, "Audit log")),
     h("ul", { class: "list" }, d.activity.map((e) => h("li", null, statusBadge(e.result), h("span", { class: "grow" }, h("b", null, e.api_key_name ? `${e.actor_name || "?"} (key ${e.api_key_name})` : e.actor_name || e.actor_type), " ", actionLabel(e.action), e.label ? ` · ${e.label}` : ""), h("span", { class: "tiny muted" }, ago(e.ts)))))));
   if (row.length) out.push(h("div", { class: `grid ${row.length > 1 ? "g2" : ""}`, style: { marginTop: "16px" } }, row));

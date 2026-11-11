@@ -22,15 +22,14 @@ Branch: `admin-panel`. Spec: `docs/ADMIN_SPEC.md` (founder's requirements; plus:
 - Unit tests: tests/admin-auth|admin-access|admin-audit.test.mjs (41 new; 59 total passing).
 - E2E: tests/e2e/admin-flow.mjs against wrangler pages dev — 33+/35 checks first run, fixed; screenshots in /home/user/tiny-comet-admin-screenshots/.
 
-## In progress / next
-1. `public/admin/assets/app.js` (router, shell, auth screens) + `assets/views/*.js` (dashboard, analytics, games, news, media, team,
-   messages, pages, settings, users, roles, keys, approvals, webhooks, audit, system, account, api-docs).
-2. Wire `settings.analyticsEndpoint = "/api/v1/collect"` + optional contact form endpoint; update `public/_headers` (/admin, /api noindex + CSP).
-3. wrangler.toml D1/R2 bindings (placeholder IDs), `.dev.vars.example` (ENCRYPTION_KEY, SIGNING_KEY, SETUP_TOKEN, TURNSTILE_SECRET, ENVIRONMENT).
-4. Tests: TOTP vectors, passwords/sessions, permission matrix + no-escalation, key scopes/IP/expiry/rate limit, kill switch/dry-run/approvals,
-   audit diffs/chain/verify, redaction, webhook signing.
-5. E2E with `npx wrangler@4 pages dev` + local D1 (works in this container) and Playwright; screenshots 1440/390 → `/home/user/tiny-comet-admin-screenshots/`.
-6. Docs: `docs/ADMIN.md`, `docs/API.md`, README setup.
+## Status: feature-complete on this branch
+- E2E: 35/35 checks on a fresh local D1 (wrangler pages dev); 76 screenshots (38 screens × 1440/390) in /home/user/tiny-comet-admin-screenshots/.
+- Docs: docs/ADMIN.md, docs/API.md, README › Admin setup.
+
+## Possible follow-ups
+- Real Cloudflare deploy: create D1/R2, put the database_id in wrangler.toml, set secrets, run `node tools/db-seed.mjs --remote`.
+- External cron for exact scheduled publishing (`POST /api/v1/system/tick`).
+- Check PBKDF2 CPU time on the Workers plan in use.
 
 ## Resume
-`git checkout admin-panel && npm test`; smoke: see tests/helpers.mjs (`makeEnv`, `bootstrapOwner`).
+`git checkout admin-panel && npm test`; local: `cp .dev.vars.example .dev.vars && node tools/db-seed.mjs --local && npx wrangler@4 pages dev`.
