@@ -8,7 +8,7 @@
   "contactEmail": "hello@tinycometstudio.com",
   "pressEmail": "press@tinycometstudio.com",
   "turnstileSiteKey": "1x00000000000000000000AA",
-  "analyticsEndpoint": "",
+  "analyticsEndpoint": "/api/v1/collect",
   "socials": [
     { "id": "itch", "label": "itch.io", "url": "#" },
     { "id": "steam", "label": "Steam", "url": "#" },

@@ -1,5 +1,6 @@
 # Cloudflare Pages response headers. https://developers.cloudflare.com/pages/configuration/headers/
-# Note: Pages Functions (/<slug>/play/*, /api/*) set their own headers in code.
+# Note: Pages Functions (/<slug>/play/*, /api/*, /admin/*, pages rendered from D1) set their own headers in code
+# (mirrored in lib/site-headers.js — tests keep them in sync).
 
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains
@@ -26,6 +27,16 @@
   Content-Type: application/rss+xml; charset=utf-8
   Cache-Control: public, max-age=600
 
-# Reserved for the future admin panel.
+# Admin panel (static shell + assets). The /admin/* Function sets the same headers on the HTML.
 /admin/*
-  X-Robots-Tag: noindex
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Referrer-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src 'self'; img-src 'self' data: blob:; style-src 'self'; font-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+/admin/assets/*
+  Cache-Control: no-cache
+
+# Control API (responses come from a Function, which sets its own headers; listed here for completeness).
+/api/*
+  X-Robots-Tag: noindex, nofollow
