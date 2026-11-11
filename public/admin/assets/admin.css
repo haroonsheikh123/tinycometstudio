@@ -337,3 +337,16 @@ dialog::backdrop { background: rgb(14 15 44 / .55); backdrop-filter: blur(2px); 
 }
 @media (max-width: 520px) { .g4 { grid-template-columns: 1fr 1fr; } .kpi__value { font-size: 1.6rem; } .card { padding: 16px; } .codes { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ---------- polish ---------- */
+.shell { background: linear-gradient(to right, var(--side) 248px, transparent 248px); }
+.grid > * { min-width: 0; }
+.g-main { align-items: start; }
+.chart .hover-dot { visibility: hidden; }
+.chart-box:hover .hover-dot { visibility: visible; }
+@media (max-width: 860px) {
+  .shell { background: none; }
+  .top__title { display: none; }
+}
+@media (max-width: 860px) { .sticky-actions { position: static; background: none; backdrop-filter: none; } }
+.grid.g2 { align-items: start; }

@@ -25,13 +25,13 @@ export default async function analytics() {
       ]);
       const t = sum.data.totals, p = sum.data.previous;
       const series = ts.data.points.map((x, i) => ({ t: x.t, value: x.value, visitors: vis.data.points[i]?.value || 0 }));
-      const delta = (a, b) => (b ? `${a >= b ? "▲" : "▼"} ${Math.abs(((a - b) / b) * 100).toFixed(0)}%` : "—");
+      const delta = (a, b) => (b ? `${a >= b ? "▲" : "▼"} ${Math.abs(((a - b) / b) * 100).toFixed(0)}%` : null);
       const brBox = h("div");
       const showBr = (rows) => brBox.replaceChildren(barList(rows, { label: (x) => x.key || "(direct)" }));
       showBr(br.data.rows);
       body.replaceChildren(
         h("div", { class: "grid g4" }, [["Visitors", "visitors"], ["Page views", "page_view"], ["Store clicks", "store_click"], ["Captcha passes", "play_unlocked"]].map(([l, k]) =>
-          h("div", { class: "card kpi" }, h("div", { class: "kpi__label" }, l), h("div", { class: "kpi__value" }, fmtNum(t[k])), h("div", { class: ["kpi__delta", t[k] >= p[k] ? "up" : "down"] }, `${delta(t[k], p[k])} vs previous period`)))),
+          h("div", { class: "card kpi" }, h("div", { class: "kpi__label" }, l), h("div", { class: "kpi__value" }, fmtNum(t[k])), h("div", { class: ["kpi__delta", p[k] ? (t[k] >= p[k] ? "up" : "down") : ""] }, delta(t[k], p[k]) ? `${delta(t[k], p[k])} vs previous period` : "no data for the previous period")))),
         h("div", { class: "card" }, h("div", { class: "card__head" }, h("h2", null, EVENTS.find((e) => e[0] === st.event)[1]), h("div", { class: "chart-legend" }, h("span", null, h("i"), "Events"), h("span", null, h("i", { class: "l2" }), "Visitors"))), lineChart(series, { key: "value", key2: "visitors", label: "Event time series" })),
         h("div", { class: "grid g2" },
           h("div", { class: "card" }, h("div", { class: "card__head" }, h("h2", null, "Breakdown"), seg(DIMS, st.dim, async (v) => { st.dim = v; showBr((await api("GET", "/analytics/breakdown", { query: { ...range(), event: st.event, dimension: v, limit: 12 } })).data.rows); })), brBox),

@@ -38,6 +38,7 @@ async function shoot(page, name, { full = true } = {}) {
   const vp = page.viewportSize();
   for (const [label, size] of VIEWPORTS) {
     await page.setViewportSize(size);
+    await page.evaluate(() => { document.activeElement?.blur?.(); scrollTo(0, 0); });
     await page.waitForTimeout(250);
     await page.screenshot({ path: `${SHOTS}/${name}-${label}-${size.width}.png`, fullPage: full });
   }

@@ -71,7 +71,7 @@ async function openEntry(id) {
     h("h3", null, "Field changes"), diffView(e.changes),
     h("h3", { style: { marginTop: "18px" } }, "Who · from where"),
     kv([["Actor", `${e.actor_name || "—"} (${e.actor_type})`], ["Email", e.actor_email], ["Role at the time", e.actor_role], ["API key", e.api_key_name ? `${e.api_key_name} (${e.api_key_id})` : null], ["Session", e.session_id],
-      ["Source", e.source], ["IP", e.ip], ["Location", [e.city, e.country].filter(Boolean).join(", ")], ["Device", e.device], ["User agent", e.user_agent], ["Request", e.method ? `${e.method} ${e.route}` : null], ["Request id", e.request_id],
+      ["Source", e.source], ["IP", e.ip], ["Location", [e.city, e.country].filter(Boolean).join(", ")], ["Device", e.device], ["User agent", e.user_agent], ["Request", e.route], ["Request id", e.request_id],
       ["Resource", e.resource_type ? `${e.resource_type} · ${e.resource_id || ""} ${e.resource_label ? `· ${e.resource_label}` : ""}` : null], ["Parent entry", e.parent_id]]),
     e.children?.length ? [h("h3", { style: { marginTop: "18px" } }, `${e.children.length} child entries (bulk)`), h("ul", { class: "list" }, e.children.map((c) => h("li", null, h("span", { class: "chip" }, c.action), h("span", { class: "grow" }, c.resource_label || c.resource_id), statusBadge(c.result))))] : null,
     e.before ? [h("h3", { style: { marginTop: "18px" } }, "Before"), jsonBlock(e.before)] : null, e.after ? [h("h3", null, "After"), jsonBlock(e.after)] : null,
