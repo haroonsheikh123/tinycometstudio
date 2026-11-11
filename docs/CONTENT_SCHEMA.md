@@ -2,8 +2,8 @@
 
 All site content lives in `content/`. `node tools/build.mjs` validates it
 (`tools/render/validate.mjs`) and renders static pages into `public/`.
-The schema is deliberately flat and JSON-friendly so it can later move into a
-Cloudflare D1 database and be edited from an admin UI (`/admin/` is reserved).
+The schema is deliberately flat and JSON-friendly; with the admin panel set up it lives in Cloudflare D1
+(see `migrations/0001_init.sql`, docs/ADMIN.md) and `tools/content-sync.mjs pull` writes it back to these files.
 
 | Source | Shape | Suggested D1 table |
 | --- | --- | --- |
@@ -35,7 +35,7 @@ Conventions used everywhere:
 | `contactEmail` | string | required; contact section, form, privacy page (`{{contactEmail}}`) |
 | `pressEmail` | string | press kit contact |
 | `turnstileSiteKey` | string | Cloudflare Turnstile **site** key (public). Test key `1x00000000000000000000AA` always passes. |
-| `analyticsEndpoint` | string | `""` = analytics off. Otherwise a URL that accepts `navigator.sendBeacon` JSON (see below). |
+| `analyticsEndpoint` | string | `""` = analytics off. `/api/v1/collect` = the built-in cookie-free analytics (see docs/ADMIN.md). |
 | `socials[]` | `{ id, label, url }` | `id` picks the icon: itch, steam, googleplay, appstore, x, instagram, youtube, discord, github, linkedin, facebook |
 | `hero` | `{ eyebrow, titleLine1, titleLine2, lead }` | home hero copy |
 | `about` | `{ title, lead, paragraphs[] }` | home About copy (`[PLACEHOLDER: …]` text is highlighted) |

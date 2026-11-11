@@ -5,7 +5,8 @@ The website of **Tiny Comet Studio**, a small indie games & apps team from Pakis
 - **Static site** in `public/`, generated from plain content files in `content/` by a tiny zero-dependency Node script.
 - **Cloudflare Pages** hosting (auto-deploys from GitHub `haroonsheikh123/tinycometstudio`).
 - **Pages Functions** (`functions/`) gate browser-playable game builds behind **Cloudflare Turnstile**.
-- No frameworks, no npm dependencies. Vanilla HTML/CSS + two small ES modules.
+- **Admin panel + Control API** at `/admin` and `/api/v1` (D1 + R2, email + password + authenticator-app sign-in, audit log) — see [Admin setup](#admin-panel--control-api-setup), [docs/ADMIN.md](docs/ADMIN.md) and [docs/API.md](docs/API.md).
+- No frameworks, no npm runtime dependencies. Vanilla HTML/CSS + small ES modules.
 
 ```
 /                      studio home (games, what we do, latest news, about + team, follow, contact)
@@ -14,7 +15,8 @@ The website of **Tiny Comet Studio**, a small indie games & apps team from Pakis
 /news/                 newsroom  (+ /news/<post>/, /news/feed.xml)
 /press/                press kit
 /privacy/              privacy policy (template)
-/admin/                reserved for a future admin panel
+/admin/                admin panel (noindex; email + password + TOTP)
+/api/v1/               Control API for the admin, apps and cloud agents (OpenAPI at /api/v1/openapi.json)
 ```
 
 ---
@@ -41,7 +43,14 @@ functions/               Cloudflare Pages Functions
 lib/
   play-auth.js           HMAC tickets, cookies, CSP for game builds (Web Crypto, no deps)
   games.generated.js     GENERATED allow-list of web-playable slugs
-tests/                   node --test unit tests (functions + render)
+  _middleware.js               renders public pages from D1 (edge-cached) when configured, else static files
+  api/v1/[[path]].js           Control API → lib/admin/api.js
+  admin/[[path]].js            admin app shell (strict CSP)        media/[[path]].js   R2 media
+lib/admin/               Control API: routes, auth (TOTP, sessions, keys), permissions, audit log, webhooks, analytics
+lib/site-render.js       public pages from D1 via tools/render
+migrations/              D1 schema
+tools/db-seed.mjs        content/ → D1 (first import)      tools/content-sync.mjs   D1 ⇄ content/ via the API
+tests/                   node --test unit tests (functions, render, admin) + tests/e2e/admin-flow.mjs (Playwright)
 public/                  ← BUILD OUTPUT (committed, deployable as-is)
   index.html, 404.html, <slug>/index.html, news/…, press/, privacy/   GENERATED
   <slug>/play/           your HTML5/WebGL game build (NOT generated — you put files here)
@@ -52,6 +61,10 @@ public/                  ← BUILD OUTPUT (committed, deployable as-is)
 wrangler.toml            Pages config for local dev (`pages_build_output_dir = "public"`)
 .dev.vars.example        local secrets template (Turnstile TEST keys)
 ```
+
+Once the admin is set up, **D1 is the source of truth** for content: edit in `/admin` (or via the API) and the live site updates
+instantly. Pull those edits back into the repo with `node tools/content-sync.mjs pull` (then build + commit) so `content/` and the
+static fallback stay in sync. Without D1 configured, everything below works exactly as before.
 
 Never edit generated files in `public/` by hand — edit `content/` (or `tools/render/`) and rebuild.
 `public/css`, `public/js`, `public/assets` and `public/<slug>/play/` are hand-maintained.
@@ -167,7 +180,7 @@ The repo ships Cloudflare's **always-pass test keys** (site key `1x0000000000000
    Or from a terminal: `npx wrangler pages secret put TURNSTILE_SECRET --project-name tinycometstudio`
    (same for `SIGNING_KEY`). Redeploy so they take effect. Rotating `SIGNING_KEY` logs everyone out of web play.
 
-Local testing with Functions: `cp .dev.vars.example .dev.vars` then `npx wrangler pages dev`.
+Local testing with Functions: `cp .dev.vars.example .dev.vars` then `npx wrangler pages dev` (see Admin setup below for D1).
 
 **Extra hardening (optional):** add a Cloudflare **rate-limiting rule** for `POST /api/verify`
 (Security → WAF → Rate limiting, e.g. 20 requests / minute / IP). For the strongest no-code protection of a
@@ -216,6 +229,45 @@ Don't build separate sites — redirect to the path:
    `concat("https://tinycometstudio.com/", substring(http.host, 0, len(http.host) - 20), "/")`. Test before relying on it.)
 
 ---
+
+## Admin panel & Control API setup
+
+One-time, ~15 minutes. Details: [docs/ADMIN.md](docs/ADMIN.md) (how it works) and [docs/API.md](docs/API.md) (API + agent curl examples).
+
+1. **D1 database** (content, users, audit log):
+   ```bash
+   npx wrangler d1 create tinycomet          # copy the database_id it prints into wrangler.toml ([[d1_databases]])
+   node tools/db-seed.mjs --remote           # applies migrations/ and imports content/ (adds only, never overwrites)
+   ```
+2. **R2 bucket** (media library, game builds, audit archives): `npx wrangler r2 bucket create tinycomet-media`
+   (the binding `MEDIA` is already in `wrangler.toml`).
+   If you set the project up in the dashboard instead: Pages project → Settings → Bindings → add D1 `DB` → `tinycomet` and R2 `MEDIA` → `tinycomet-media`.
+3. **Secrets** — Pages project → Settings → Variables and Secrets (Production *and* Preview), all **encrypted**, or
+   `npx wrangler pages secret put NAME --project-name tinycometstudio`:
+
+   | Secret | What | Generate |
+   | --- | --- | --- |
+   | `SIGNING_KEY` | signs sessions, CSRF, play cookies, upload URLs and the audit hash chain | `openssl rand -base64 48` |
+   | `ENCRYPTION_KEY` | AES-GCM key for TOTP and webhook secrets at rest | `openssl rand -base64 32` |
+   | `SETUP_TOKEN` | one-time token to create the first owner (remove it after setup) | `openssl rand -hex 24` |
+   | `TURNSTILE_SECRET` | Turnstile secret (web play + login after failed attempts) | Cloudflare → Turnstile |
+   | `EMAIL_WEBHOOK_URL`, `EMAIL_WEBHOOK_TOKEN` | *optional* — send invite/reset emails via any relay | |
+   | `CF_ZONE_ID`, `CF_API_TOKEN` | *optional* — also purge the zone cache on content changes | token with Cache Purge |
+
+   ⚠ Keep `SIGNING_KEY` and `ENCRYPTION_KEY` safe and stable: rotating `SIGNING_KEY` signs everyone out and makes old audit entries
+   fail verification; losing `ENCRYPTION_KEY` means everyone must re-enroll their authenticator.
+4. **Deploy** (push), then open **`https://tinycometstudio.com/admin/setup`**, enter the `SETUP_TOKEN`, your name, email and a password,
+   and scan the QR code with your authenticator app. Save the 10 recovery codes. Setup disables itself after this; you can delete the
+   `SETUP_TOKEN` secret.
+5. In the admin: **Users → Invite** your team (pick or create a role), **Site settings** → replace the Turnstile test site key,
+   **API keys** for apps/agents. Optional: put Cloudflare Access in front of `/admin*` (see docs/ADMIN.md).
+6. Scheduled posts publish on the next visit after their time. For exact timing, call `POST /api/v1/system/tick` from any cron
+   (e.g. a GitHub Action every 5 min with a key that has `system:manage`).
+
+Plan note: password hashing (PBKDF2, 100k iterations) can exceed the Workers **free** plan's 10 ms CPU limit on sign-in requests —
+if logins fail with a CPU-limit error, switch to Workers Paid ($5/mo).
+
+Local: `cp .dev.vars.example .dev.vars && node tools/db-seed.mjs --local && npx wrangler@4 pages dev` → http://localhost:8788/admin/setup.
 
 ## Performance & standards
 
