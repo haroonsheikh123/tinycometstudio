@@ -1,7 +1,9 @@
 /* DEV/TEST ONLY — a synchronous-constructor wrapper around the production SQLite adapter (lib/platform/db/sqlite.js,
    node:sqlite), plus an in-memory R2 bucket mock. Lets the Pages Functions run in plain Node tests.
    Production on Node uses lib/platform/db + lib/platform/storage; on Cloudflare the real D1/R2 bindings. */
-import { DatabaseSync } from "node:sqlite";
+// node:sqlite only exists on Node 22.5+; on older Node the mock R2 still works and tests use TEST_DB_DRIVER=mysql.
+let DatabaseSync = null;
+try { ({ DatabaseSync } = await import("node:sqlite")); } catch { /* Node < 22.5 */ }
 import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +13,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 export class D1Shim extends SqliteD1 {
   constructor(file = ":memory:") {
+    if (!DatabaseSync) throw new Error(`node:sqlite is not available in Node ${process.versions.node} — run the tests with TEST_DB_DRIVER=mysql`);
     const raw = new DatabaseSync(file);
     raw.exec("PRAGMA foreign_keys = ON");
     super(raw, { file });

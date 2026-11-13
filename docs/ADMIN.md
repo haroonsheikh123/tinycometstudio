@@ -1,5 +1,8 @@
 # Admin panel — how it works
 
+> Hosting: everything here works the same on **cPanel/Node** ([DEPLOY_CPANEL.md](DEPLOY_CPANEL.md): MySQL or SQLite instead of D1,
+> a private media folder instead of R2, a cron job for `tick`) and on **Cloudflare Pages** (D1 + R2).
+
 `/admin` is the control room for tinycometstudio.com: games, newsroom, media, team, pages, messages, settings,
 analytics, users and roles, API keys, approvals, webhooks, the audit log and system switches. It's a small vanilla
 ES-module app (`public/admin/`) that talks **only** to the public Control API (`/api/v1`, see [API.md](API.md)) —

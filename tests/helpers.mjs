@@ -46,6 +46,18 @@ export async function makeDb({ seed = true } = {}) {
   if (seed) await db.exec(await buildSeedSql());
   return db;
 }
+/** MySQL only: create an empty database for a test and return its mysql:// URL (dropped after the file's tests). */
+export async function freshMysqlUrl() {
+  const { MysqlD1, parseMysqlUrl } = await import("../lib/platform/db/mysql.js");
+  const raw = process.env.MYSQL_URL || "mysql://tc:tcpass@127.0.0.1:3306/tinycomet_test";
+  const base = parseMysqlUrl(raw);
+  const name = `tinycomet_t${process.pid}_${dbCounter++}`;
+  const admin = await MysqlD1.open({ ...base, database: "" });
+  await admin.rawQuery(`CREATE DATABASE \`${name}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_bin`);
+  cleanups.push(async () => { await admin.rawQuery(`DROP DATABASE IF EXISTS \`${name}\``); await admin.close(); });
+  const u = new URL(raw); u.pathname = "/" + name;
+  return u.toString();
+}
 export function makeMedia() {
   if (process.env.TEST_STORAGE !== "fs") return new R2Mock();
   const dir = mkdtempSync(join(tmpdir(), "tc-media-"));

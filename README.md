@@ -3,10 +3,14 @@
 The website of **Tiny Comet Studio**, a small indie games & apps team from Pakistan led by Haroon Sheikh.
 
 - **Static site** in `public/`, generated from plain content files in `content/` by a tiny zero-dependency Node script.
-- **Cloudflare Pages** hosting (auto-deploys from GitHub `haroonsheikh123/tinycometstudio`).
-- **Pages Functions** (`functions/`) gate browser-playable game builds behind **Cloudflare Turnstile**.
-- **Admin panel + Control API** at `/admin` and `/api/v1` (D1 + R2, email + password + authenticator-app sign-in, audit log) — see [Admin setup](#admin-panel--control-api-setup), [docs/ADMIN.md](docs/ADMIN.md) and [docs/API.md](docs/API.md).
-- No frameworks, no npm runtime dependencies. Vanilla HTML/CSS + small ES modules.
+- **Hosting — primary: cPanel shared hosting** ("Setup Node.js App" / Passenger): `server.mjs` runs the whole site — pages, admin,
+  API, database (MySQL/MariaDB or a SQLite file) and media on local disk. Step-by-step: **[docs/DEPLOY_CPANEL.md](docs/DEPLOY_CPANEL.md)**.
+- **Alternative: Cloudflare Pages** (+ D1 + R2) — the same code, unchanged; see [Deploying on Cloudflare Pages](#alternative-deploying-on-cloudflare-pages).
+- **Functions** (`functions/`, Pages-Functions format on both hosts) gate browser-playable game builds behind **Cloudflare Turnstile**
+  (a free service that works on any host).
+- **Admin panel + Control API** at `/admin` and `/api/v1` (email + password + authenticator-app sign-in, audit log) — see
+  [Admin setup](#admin-panel--control-api-setup), [docs/ADMIN.md](docs/ADMIN.md) and [docs/API.md](docs/API.md).
+- No frameworks. One npm dependency (`mysql2`, pure JavaScript) — only used with MySQL. Vanilla HTML/CSS + small ES modules.
 
 ```
 /                      studio home (games, what we do, latest news, about + team, follow, contact)
@@ -50,6 +54,13 @@ lib/admin/               Control API: routes, auth (TOTP, sessions, keys), permi
 lib/site-render.js       public pages from D1 via tools/render
 migrations/              D1 schema
 tools/db-seed.mjs        content/ → D1 (first import)      tools/content-sync.mjs   D1 ⇄ content/ via the API
+server.mjs  app.cjs      Node.js entry point (cPanel startup file; app.cjs = CommonJS wrapper)
+lib/platform/            Node host adapters: db/ (SQLite + MySQL, D1-compatible, SQL translation, migrations), storage/
+                         (R2-compatible local disk), cache (render cache), static (public/ + _headers/_redirects), pages-router
+                         (functions/ routing), client-ip, smtp, config (.env)
+migrations/mysql/        MySQL/MariaDB copies of migrations/
+tools/cpanel-setup.mjs   first-time setup (secrets, tables, content)    tools/migrate|tick|backup.mjs, tools/deploy.sh
+.env.example             every Node-host setting          .github/workflows/deploy-cpanel.yml   opt-in auto-deploy
 tests/                   node --test unit tests (functions, render, admin) + tests/e2e/admin-flow.mjs (Playwright)
 public/                  ← BUILD OUTPUT (committed, deployable as-is)
   index.html, 404.html, <slug>/index.html, news/…, press/, privacy/   GENERATED
@@ -189,7 +200,25 @@ separately hosted build (e.g. `play.tinycometstudio.com` on R2/Pages), add a **W
 
 ---
 
-## Deploying on Cloudflare Pages
+## Hosting on cPanel (Node.js) — recommended
+
+Full click-by-click guide for the founder: **[docs/DEPLOY_CPANEL.md](docs/DEPLOY_CPANEL.md)**. In short:
+
+1. cPanel → **MySQL Databases**: create a database + user (or use a SQLite file on Node 22.13+).
+2. **Git Version Control**: clone this repo into `~/tinycomet-app` (or upload a zip).
+3. **Setup Node.js App → Create Application**: highest Node version, root `tinycomet-app`, URL = your domain, startup file `server.mjs`.
+4. Environment variables: `DB_DRIVER=mysql`, `DATABASE_URL=mysql://user:pass@localhost/db`, `SITE_URL`, `TURNSTILE_SECRET`.
+5. **Run NPM Install** → **Run JS script → `setup`** (generates `SIGNING_KEY`/`ENCRYPTION_KEY`/`SETUP_TOKEN` into
+   `~/tinycomet-data/.env`, creates tables, imports `content/`) → **Restart**.
+6. **SSL/TLS Status → Run AutoSSL**, **Domains → Force HTTPS**; **Cron Jobs** every 5 min: the `tools/tick.mjs` line `setup` printed.
+7. Open `/admin/setup` with the setup token.
+
+Updates: Git *Update from Remote* → *Run NPM Install* → *Run JS script › migrate* → *Restart* (or `bash tools/deploy.sh` over SSH).
+
+Locally the same way: `npm install && npm start` → http://localhost:3000 (SQLite in `~/tinycomet-data`, or set `DATA_DIR`).
+Settings: [`.env.example`](.env.example). Tests: `npm test` (SQLite) and `npm run test:mysql` (with `MYSQL_URL=mysql://…`).
+
+## Alternative: deploying on Cloudflare Pages
 
 1. Push this folder as the root of the GitHub repo `haroonsheikh123/tinycometstudio`.
 2. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** → pick the repo.
@@ -232,6 +261,9 @@ Don't build separate sites — redirect to the path:
 
 ## Admin panel & Control API setup
 
+**On cPanel/Node** this is covered by [docs/DEPLOY_CPANEL.md](docs/DEPLOY_CPANEL.md) (steps 4–6 and 12) — no D1/R2 needed:
+the database is MySQL/SQLite and media live in `~/tinycomet-data/media`. The rest of this section is for **Cloudflare**.
+
 One-time, ~15 minutes. Details: [docs/ADMIN.md](docs/ADMIN.md) (how it works) and [docs/API.md](docs/API.md) (API + agent curl examples).
 
 1. **D1 database** (content, users, audit log):
@@ -262,9 +294,9 @@ One-time, ~15 minutes. Details: [docs/ADMIN.md](docs/ADMIN.md) (how it works) an
 5. In the admin: **Users → Invite** your team (pick or create a role), **Site settings** → replace the Turnstile test site key,
    **API keys** for apps/agents. Optional: put Cloudflare Access in front of `/admin*` (see docs/ADMIN.md).
 6. Scheduled posts publish on the next visit after their time. For exact timing, call `POST /api/v1/system/tick` from any cron
-   (e.g. a GitHub Action every 5 min with a key that has `system:manage`).
+   (e.g. a GitHub Action every 5 min with a key that has `system:manage`). On cPanel: a Cron Job running `tools/tick.mjs`.
 
-Plan note: password hashing (PBKDF2, 100k iterations) can exceed the Workers **free** plan's 10 ms CPU limit on sign-in requests —
+Plan note: password hashing (PBKDF2, 100k iterations on Workers; 600k on the Node host) can exceed the Workers **free** plan's 10 ms CPU limit on sign-in requests —
 if logins fail with a CPU-limit error, switch to Workers Paid ($5/mo).
 
 Local: `cp .dev.vars.example .dev.vars && node tools/db-seed.mjs --local && npx wrangler@4 pages dev` → http://localhost:8788/admin/setup.
@@ -276,7 +308,9 @@ Local: `cp .dev.vars.example .dev.vars && node tools/db-seed.mjs --local && npx 
 - CSS/JS URLs are content-hashed (`?v=…`) so `_headers` caches them for a year.
 - Looping decorative animations (sky twinkle, floating comet, orbit) are transform/opacity only and start on the
   visitor's first interaction; scroll reveals use CSS scroll-driven animations. `prefers-reduced-motion` disables all motion.
-- Lighthouse (mobile, local): Performance 98–99, Accessibility 100, Best Practices 100, SEO 100.
+- Lighthouse (mobile, local): Performance 98–99, Accessibility 100, Best Practices 100, SEO 100 — also when served by
+  `node server.mjs` (home 99/100/100/100, game page 99, news post 100; rendered pages come from the page cache with Brotli,
+  ETag/304; static assets are precompressed once and cached for a year).
 - Security headers (CSP, HSTS, nosniff, Referrer-Policy, Permissions-Policy, COOP, frame protection) in `public/_headers`.
 
 ## Placeholders to fill in

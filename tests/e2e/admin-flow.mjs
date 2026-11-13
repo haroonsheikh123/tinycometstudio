@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-/* End-to-end admin flow in a real browser against `npx wrangler pages dev` (local D1 + R2).
-   Prereqs: node tools/db-seed.mjs --local && npx wrangler pages dev --port 8788   (fresh DB: no users yet)
+/* End-to-end admin flow in a real browser against `npx wrangler pages dev` (local D1 + R2) — or the Node host:
+     ENV_FILE=.dev.vars DATA_DIR=$(mktemp -d) PORT=8788 node server.mjs      (fresh SQLite; add DATABASE_URL=mysql://… for MySQL)
+   Prereqs (Cloudflare): node tools/db-seed.mjs --local && npx wrangler pages dev --port 8788   (fresh DB: no users yet)
    Run:     NODE_PATH=$(npm root -g) node tests/e2e/admin-flow.mjs [--base http://127.0.0.1:8788] [--shots DIR]
    TOTP codes are computed here from the secret shown on the enrollment screen (lib/admin/totp.js). */
 import { createRequire } from "node:module";
@@ -13,7 +14,7 @@ const args = process.argv.slice(2);
 const opt = (n, d) => (args.includes(n) ? args[args.indexOf(n) + 1] : d);
 const BASE = opt("--base", "http://127.0.0.1:8788");
 const SHOTS = opt("--shots", "/home/user/tiny-comet-admin-screenshots");
-const SETUP_TOKEN = (readFileSync(new URL("../../.dev.vars", import.meta.url), "utf8").match(/^SETUP_TOKEN=(.*)$/m) || [])[1];
+const SETUP_TOKEN = process.env.SETUP_TOKEN || (readFileSync(new URL("../../.dev.vars", import.meta.url), "utf8").match(/^SETUP_TOKEN=(.*)$/m) || [])[1];
 mkdirSync(SHOTS, { recursive: true });
 
 const OWNER = { name: "Haroon Sheikh", email: "haroon@tinycometstudio.com", password: "Comet-launch-Lahore-2026!" };

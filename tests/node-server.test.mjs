@@ -12,15 +12,17 @@ import { createApp } from "../lib/platform/node-server.js";
 import { createLogger } from "../lib/platform/logger.js";
 import { matchSegments, parseSegments } from "../lib/platform/pages-router.js";
 import { signTicket } from "../lib/play-auth.js";
-import { bootstrapOwner, SETUP_TOKEN } from "./helpers.mjs";
+import { bootstrapOwner, SETUP_TOKEN, DB_DRIVER, freshMysqlUrl } from "./helpers.mjs";
 
 const dirs = [];
+const mysqlUrls = {};
 after(() => { for (const d of dirs) rmSync(d, { recursive: true, force: true }); });
 
 async function start(dataDir, extra = {}) {
   dataDir ||= mkdtempSync(join(tmpdir(), "tc-node-"));
   if (!dirs.includes(dataDir)) dirs.push(dataDir);
-  const vars = { DATA_DIR: dataDir, DB_DRIVER: "sqlite", SIGNING_KEY: "s".repeat(48), ENCRYPTION_KEY: "e".repeat(48), SETUP_TOKEN, DISABLE_AUTO_TICK: "1", PBKDF2_ITERATIONS: "100000", ...extra };
+  const db = DB_DRIVER === "mysql" ? { DB_DRIVER: "mysql", DATABASE_URL: (mysqlUrls[dataDir] ||= await freshMysqlUrl()) } : { DB_DRIVER: "sqlite" };
+  const vars = { DATA_DIR: dataDir, ...db, SIGNING_KEY: "s".repeat(48), ENCRYPTION_KEY: "e".repeat(48), SETUP_TOKEN, DISABLE_AUTO_TICK: "1", PBKDF2_ITERATIONS: "100000", ...extra };
   const app = await createApp({ vars, log: createLogger("silent"), noTimers: true });
   const server = http.createServer(app.handler);
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
