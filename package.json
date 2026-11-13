@@ -3,7 +3,9 @@
   "private": true,
   "description": "Tiny Comet Studio website — static site + Cloudflare Pages Functions. Zero dependencies.",
   "type": "module",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "node tools/build.mjs",
     "check": "node tools/build.mjs --check",
@@ -12,5 +14,8 @@
     "test": "node --test tests/*.test.mjs",
     "dev": "npx wrangler pages dev",
     "preview": "python3 -m http.server 8000 --directory public"
+  },
+  "dependencies": {
+    "mysql2": "3.24.6"
   }
 }

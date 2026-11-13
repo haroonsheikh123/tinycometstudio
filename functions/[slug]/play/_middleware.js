@@ -7,12 +7,17 @@ import { PLAY_GAMES } from "../../../lib/games.generated.js";
 import { SLUG_RE, COOKIE_NAME, GAME_CSP, getCookie, verifyTicket, fetchAsset, notFound } from "../../../lib/play-auth.js";
 import { playableFromD1, renderGateFromD1 } from "../../../lib/site-render.js";
 import { MIME } from "../../../lib/admin/routes/media.js";
+import { rangeOption, rangeResult } from "../../../lib/r2-range.js";
 
-async function serveBuild(env, slug, build, url) {
+async function serveBuild(env, slug, build, url, request) {
   let rel = decodeURIComponent(url.pathname.slice(`/${slug}/play/`.length));
   if (!rel || rel.endsWith("/")) rel += "index.html";
   if (rel.split("/").some((s) => s === "..")) return new Response("Not found", { status: 404 });
-  const obj = await env.MEDIA.get(`builds/${slug}/${build.id}/${rel}`);
+  const key = `builds/${slug}/${build.id}/${rel}`;
+  const inm = request?.headers.get("If-None-Match");
+  const head = inm ? await env.MEDIA.head(key) : null;
+  if (head && inm === head.httpEtag) return new Response(null, { status: 304, headers: { ETag: head.httpEtag } });
+  const obj = await env.MEDIA.get(key, request ? rangeOption(request) : undefined);
   if (!obj) return new Response("Not found", { status: 404, headers: { "Cache-Control": "no-store" } });
   const ext = rel.split(".").pop().toLowerCase();
   const h = new Headers({ "Content-Type": obj.httpMetadata?.contentType || MIME[ext] || "application/octet-stream" });
@@ -21,7 +26,9 @@ async function serveBuild(env, slug, build, url) {
   if (/\.(js|wasm|data|symbols\.json)\.gz$/.test(rel)) h.set("Content-Encoding", "gzip");
   if (/\.wasm(\.br|\.gz)?$/.test(rel)) h.set("Content-Type", "application/wasm");
   else if (/\.js(\.br|\.gz)$/.test(rel)) h.set("Content-Type", "text/javascript");
-  return new Response(obj.body, { headers: h, encodeBody: h.has("Content-Encoding") ? "manual" : "automatic" });
+  h.set("ETag", obj.httpEtag);
+  const status = rangeResult(obj, h);
+  return new Response(obj.body, { status, headers: h, encodeBody: h.has("Content-Encoding") ? "manual" : "automatic" });
 }
 
 export async function onRequest(context) {
@@ -38,8 +45,8 @@ export async function onRequest(context) {
 
   const ticket = getCookie(request, COOKIE_NAME);
   if (env.SIGNING_KEY && (await verifyTicket(ticket, slug, env.SIGNING_KEY))) {
-    const res = d1?.build?.id && env.MEDIA ? await serveBuild(env, slug, d1.build, url) : await next();
-    const out = new Response(res.body, res);
+    const res = d1?.build?.id && env.MEDIA ? await serveBuild(env, slug, d1.build, url, request) : await next();
+    const out = new Response(request.method === "HEAD" ? null : res.body, res);
     const isHtml = (out.headers.get("Content-Type") || "").includes("text/html");
     out.headers.set("Cache-Control", isHtml ? "private, no-cache" : "private, max-age=3600");
     out.headers.set("Content-Security-Policy", GAME_CSP);
