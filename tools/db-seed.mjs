@@ -4,6 +4,7 @@
      node tools/db-seed.mjs --local            # apply migrations + seed the local D1 (wrangler pages dev)
      node tools/db-seed.mjs --remote           # same, on the real D1 database
      node tools/db-seed.mjs --sql > seed.sql   # just print the SQL
+     node tools/db-seed.mjs --node             # Node/cPanel host: the SQLite file or MySQL database from .env (= npm run seed)
    Options: --db <name> (default: tinycomet, the database_name in wrangler.toml)
    It only ADDS rows that don't exist yet (INSERT OR IGNORE), so it never overwrites edits made in the admin.
    To push later changes from files into D1 (audited, with diffs) use: node tools/content-sync.mjs push */
@@ -60,6 +61,16 @@ async function main() {
   const args = process.argv.slice(2);
   const sql = await buildSeedSql();
   if (args.includes("--sql")) { process.stdout.write(sql); return; }
+  if (args.includes("--node")) {
+    const { openHostDb } = await import("./lib-host.mjs");
+    const { migrate } = await import("../lib/platform/db/migrate.js");
+    const { db, where } = await openHostDb();
+    await migrate(db);
+    await db.exec(sql);
+    await db.close();
+    console.log(`✔ Seeded ${db.driver} (${where}) from content/ — only rows that didn't exist yet were added.`);
+    return;
+  }
   const where = args.includes("--remote") ? "--remote" : "--local";
   const db = args[args.indexOf("--db") + 1] && args.includes("--db") ? args[args.indexOf("--db") + 1] : "tinycomet";
   const file = join(ROOT, ".wrangler", "seed.sql");
