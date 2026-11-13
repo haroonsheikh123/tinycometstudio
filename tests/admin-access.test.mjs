@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { can, grant, expand, missingForGrant, intersect, BUILTIN_ROLES, ALL_PERMISSIONS, OWNER_ONLY, roleGrant, invalidPermissions } from "../lib/admin/permissions.js";
 import { ipInCidr, ipAllowed, validCidr } from "../lib/admin/http.js";
-import { makeEnv, call, Session, bootstrapOwner, nextCode } from "./helpers.mjs";
+import { makeEnv, call, Session, bootstrapOwner, nextCode, sql, row } from "./helpers.mjs";
 
 const bearer = (k, extra = {}) => ({ Authorization: `Bearer ${k}`, ...extra });
 async function userWithRole(env, owner, roleId, email = `u${Math.random().toString(36).slice(2, 8)}@tinycometstudio.com`) {
@@ -100,7 +100,7 @@ test("API keys: scopes enforced, can't exceed creator, '*' owner-only, secret sh
   const owner = await bootstrapOwner(env);
   const k = await makeKey(owner, { scopes: ["games:read", "news:create"] });
   assert.match(k.secret, /^tck_[a-z0-9]{12}_[A-Za-z0-9_-]{43}$/);
-  const stored = env.DB.db.prepare("SELECT key_hash FROM api_keys").get();
+  const stored = await row(env, "SELECT key_hash FROM api_keys");
   assert.ok(!JSON.stringify(stored).includes(k.secret.split("_").pop()), "only the hash is stored");
   assert.ok(!(await owner.req("GET", `/api-keys/${k.api_key.id}`)).text.includes(k.secret));
   assert.equal((await call(env, "GET", "/games", { headers: bearer(k.secret) })).status, 200);
@@ -146,7 +146,7 @@ test("API keys: IP allowlist (IPv4/IPv6 CIDR), expiry, environments, disable, re
   assert.equal((await owner.req("POST", "/api-keys", { body: { name: "bad", scopes: ["games:read"], ip_allowlist: ["300.1.1.1"] } })).status, 400);
   const exp = await makeKey(owner, { scopes: ["games:read"], expires_at: new Date(Date.now() + 60_000).toISOString() });
   assert.equal((await call(env, "GET", "/games", { headers: bearer(exp.secret) })).status, 200);
-  env.DB.db.exec(`UPDATE api_keys SET expires_at = ${Date.now() - 1} WHERE id = '${exp.api_key.id}'`);
+  await sql(env, `UPDATE api_keys SET expires_at = ${Date.now() - 1} WHERE id = '${exp.api_key.id}'`);
   assert.equal((await call(env, "GET", "/games", { headers: bearer(exp.secret) })).error.details.reason, "expired");
   const envKey = await makeKey(owner, { scopes: ["games:read"], environments: ["development"] });
   assert.equal((await call(env, "GET", "/games", { headers: bearer(envKey.secret) })).error.details.reason, "environment_not_allowed");
@@ -158,7 +158,7 @@ test("API keys: IP allowlist (IPv4/IPv6 CIDR), expiry, environments, disable, re
   assert.notEqual(rot.data.secret, k.secret);
   assert.equal((await call(env, "GET", "/games", { headers: bearer(k.secret) })).status, 200, "old secret valid during grace");
   assert.equal((await call(env, "GET", "/games", { headers: bearer(rot.data.secret) })).status, 200);
-  env.DB.db.exec(`UPDATE api_keys SET prev_valid_until = ${Date.now() - 1}`);
+  await sql(env, `UPDATE api_keys SET prev_valid_until = ${Date.now() - 1}`);
   assert.equal((await call(env, "GET", "/games", { headers: bearer(k.secret) })).status, 401, "grace over");
   await owner.req("POST", `/api-keys/${k.api_key.id}/revoke`);
   assert.equal((await call(env, "GET", "/games", { headers: bearer(rot.data.secret) })).error.details.reason, "revoked");

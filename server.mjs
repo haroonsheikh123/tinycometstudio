@@ -31,6 +31,7 @@ async function shutdown(signal) {
   closing = true;
   log.info("shutting down", { signal });
   server.close();
+  server.closeIdleConnections?.();
   setTimeout(() => process.exit(0), 8000).unref();
   await app.close().catch(() => {});
   process.exit(0);

@@ -1,4 +1,10 @@
-/* Test harness: real migrations on node:sqlite (D1-compatible shim), in-memory R2, a cookie/CSRF-aware client. */
+/* Test harness: real migrations on node:sqlite (D1-compatible shim) — or on MySQL/MariaDB with
+   TEST_DB_DRIVER=mysql (MYSQL_URL=mysql://user:pass@host/any, a fresh database per env, dropped afterwards) —
+   in-memory R2 (or the Node host's FsBucket with TEST_STORAGE=fs), a cookie/CSRF-aware client. */
+import { after } from "node:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { D1Shim, R2Mock } from "../tools/dev/d1-shim.mjs";
 import { buildSeedSql } from "../tools/db-seed.mjs";
 import { handleApi } from "../lib/admin/api.js";
@@ -17,10 +23,43 @@ export function nextCode(secret) {
 export const ORIGIN = "https://tinycometstudio.com";
 export const SETUP_TOKEN = "test-setup-token-0123456789abcdef";
 
-export async function makeEnv({ seed = true, extra = {} } = {}) {
+export const DB_DRIVER = process.env.TEST_DB_DRIVER || "sqlite";
+const cleanups = [];
+after(async () => { for (const c of cleanups.splice(0)) await c().catch(() => {}); });
+let dbCounter = 0;
+
+export async function makeDb({ seed = true } = {}) {
+  if (DB_DRIVER === "mysql") {
+    const { MysqlD1, parseMysqlUrl } = await import("../lib/platform/db/mysql.js");
+    const { migrate } = await import("../lib/platform/db/migrate.js");
+    const base = parseMysqlUrl(process.env.MYSQL_URL || "mysql://tc:tcpass@127.0.0.1:3306/tinycomet_test");
+    const name = `tinycomet_t${process.pid}_${dbCounter++}`;
+    const admin = await MysqlD1.open({ ...base, database: "" });
+    await admin.rawQuery(`CREATE DATABASE \`${name}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_bin`);
+    const db = await MysqlD1.open({ ...base, database: name });
+    cleanups.push(async () => { await db.close(); await admin.rawQuery(`DROP DATABASE IF EXISTS \`${name}\``); await admin.close(); });
+    await migrate(db);
+    if (seed) await db.exec(await buildSeedSql());
+    return db;
+  }
   const db = new D1Shim().migrate();
-  if (seed) db.db.exec(await buildSeedSql());
-  return { DB: db, MEDIA: new R2Mock(), SIGNING_KEY: "s".repeat(48), ENCRYPTION_KEY: "e".repeat(48), SETUP_TOKEN, ENVIRONMENT: "production", DISABLE_AUTO_TICK: "1", ...extra };
+  if (seed) await db.exec(await buildSeedSql());
+  return db;
+}
+export function makeMedia() {
+  if (process.env.TEST_STORAGE !== "fs") return new R2Mock();
+  const dir = mkdtempSync(join(tmpdir(), "tc-media-"));
+  cleanups.push(async () => rmSync(dir, { recursive: true, force: true }));
+  return import("../lib/platform/storage/fs-bucket.js").then(({ FsBucket }) => new FsBucket(dir));
+}
+/** Driver-agnostic raw SQL for tests (SQLite dialect; translated on MySQL). */
+export const sql = (env, script) => env.DB.exec(script);
+export const row = (env, q, ...p) => env.DB.prepare(q).bind(...p).first();
+export const rows = async (env, q, ...p) => (await env.DB.prepare(q).bind(...p).all()).results;
+
+export async function makeEnv({ seed = true, extra = {} } = {}) {
+  const db = await makeDb({ seed });
+  return { DB: db, MEDIA: await makeMedia(), SIGNING_KEY: "s".repeat(48), ENCRYPTION_KEY: "e".repeat(48), SETUP_TOKEN, ENVIRONMENT: "production", DISABLE_AUTO_TICK: "1", ...extra };
 }
 
 /** Call the API like Pages would. */

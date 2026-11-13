@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { hotp, totp, verifyTotp, base32Encode, base32Decode, otpauthUri, timeStep } from "../lib/admin/totp.js";
 import { hashPassword, verifyPassword, passwordProblems, encrypt, decrypt, PBKDF2_ITERATIONS } from "../lib/admin/crypto.js";
 import { encodeQr, qrSvg } from "../lib/admin/qr.js";
-import { makeEnv, call, Session, bootstrapOwner, login, SETUP_TOKEN, nextCode } from "./helpers.mjs";
+import { makeEnv, call, Session, bootstrapOwner, login, SETUP_TOKEN, nextCode, sql } from "./helpers.mjs";
 
 const enc = new TextEncoder();
 
@@ -172,17 +172,17 @@ test("sessions: CSRF required for cookie writes, cross-origin refused, logout & 
 test("sessions: idle timeout and absolute expiry", async () => {
   const env = await makeEnv({ extra: { SESSION_IDLE_MINUTES: "5" } });
   const owner = await bootstrapOwner(env);
-  env.DB.db.exec(`UPDATE sessions SET last_seen_at = ${Date.now() - 6 * 60_000}`);
+  await sql(env, `UPDATE sessions SET last_seen_at = ${Date.now() - 6 * 60_000}`);
   assert.equal((await owner.req("GET", "/auth/session")).status, 401, "idle");
   const s2 = (await login(env, owner.email, owner.password, owner.secret)).session;
-  env.DB.db.exec(`UPDATE sessions SET expires_at = ${Date.now() - 1} WHERE revoked_at IS NULL`);
+  await sql(env, `UPDATE sessions SET expires_at = ${Date.now() - 1} WHERE revoked_at IS NULL`);
   assert.equal((await s2.req("GET", "/auth/session")).status, 401, "absolute");
 });
 
 test("step-up: sensitive actions need a fresh TOTP code", async () => {
   const env = await makeEnv();
   const owner = await bootstrapOwner(env);
-  env.DB.db.exec(`UPDATE sessions SET stepup_at = ${Date.now() - 11 * 60_000}`);
+  await sql(env, `UPDATE sessions SET stepup_at = ${Date.now() - 11 * 60_000}`);
   const r = await owner.req("POST", "/api-keys", { body: { name: "k", scopes: ["games:read"] } });
   assert.equal(r.status, 403);
   assert.equal(r.error.code, "step_up_required");

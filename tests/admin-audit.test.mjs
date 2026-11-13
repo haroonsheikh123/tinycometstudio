@@ -9,7 +9,7 @@ import { Tx } from "../lib/admin/tx.js";
 import { renderPublic, classify } from "../lib/site-render.js";
 import { PUBLIC_CSP } from "../lib/site-headers.js";
 import { collect } from "../lib/admin/routes/analytics.js";
-import { makeEnv, call, bootstrapOwner, mockFetch, ORIGIN } from "./helpers.mjs";
+import { makeEnv, call, bootstrapOwner, mockFetch, ORIGIN, sql, row, rows as allRows } from "./helpers.mjs";
 
 test("diff: nested objects, keyed arrays, primitive arrays, Markdown text diff", () => {
   const a = { title: "Nova", links: { android: "", ios: "#" }, platforms: ["android", "ios"], screenshots: [{ src: "/a.png", alt: "A" }, { src: "/b.png", alt: "B" }], body: "line 1\nline 2\nline 3" };
@@ -101,8 +101,12 @@ test("audit: append-only (UPDATE/DELETE blocked), no API to edit, chain verifies
   const owner = await bootstrapOwner(env);
   await owner.req("PATCH", "/games/project-nova", { body: { tagline: "one" } });
   await owner.req("PATCH", "/games/project-nova", { body: { tagline: "two" } });
-  assert.throws(() => env.DB.db.exec("UPDATE audit_log SET actor_name = 'Mallory' WHERE seq = 2"), /append-only/);
-  assert.throws(() => env.DB.db.exec("DELETE FROM audit_log WHERE seq = 2"), /append-only/);
+  // MySQL hosts with binary logging refuse CREATE TRIGGER without SUPER; the migration then only warns (chain still detects edits)
+  const triggers = env.DB.driver !== "mysql" || Number((await row(env, "SELECT COUNT(*) AS n FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = 'audit_log'")).n) === 2;
+  if (triggers) {
+    await assert.rejects(sql(env, "UPDATE audit_log SET actor_name = 'Mallory' WHERE seq = 2"), /append-only/);
+    await assert.rejects(sql(env, "DELETE FROM audit_log WHERE seq = 2"), /append-only/);
+  } else console.warn("audit triggers not installed on this MySQL server (no TRIGGER/SUPER privilege) — skipping the trigger assertions");
   assert.equal((await owner.req("DELETE", "/audit/x")).status, 405);
   assert.equal((await owner.req("PATCH", "/audit/x", { body: {} })).status, 405);
   const ok = await owner.req("GET", "/audit/verify");
@@ -110,9 +114,9 @@ test("audit: append-only (UPDATE/DELETE blocked), no API to edit, chain verifies
   assert.equal(ok.data.complete, true);
   assert.ok(ok.data.checked >= 6);
   // someone with raw DB access bypasses the trigger and edits history → detected
-  env.DB.db.exec("DROP TRIGGER audit_no_update");
-  const seq = env.DB.db.prepare("SELECT seq FROM audit_log WHERE action = 'game.update' ORDER BY seq LIMIT 1").get().seq;
-  env.DB.db.exec(`UPDATE audit_log SET changes = '[{"path":"tagline","op":"changed","old":"x","new":"innocent"}]' WHERE seq = ${seq}`);
+  await sql(env, triggers ? "DROP TRIGGER audit_no_update" : "SELECT 1");
+  const seq = (await row(env, "SELECT seq FROM audit_log WHERE action = 'game.update' ORDER BY seq LIMIT 1")).seq;
+  await sql(env, `UPDATE audit_log SET changes = '[{"path":"tagline","op":"changed","old":"x","new":"innocent"}]' WHERE seq = ${seq}`);
   const bad = await owner.req("GET", "/audit/verify");
   assert.equal(bad.data.ok, false);
   assert.equal(bad.data.broken_at.seq, seq);
@@ -124,7 +128,7 @@ test("audit: append-only (UPDATE/DELETE blocked), no API to edit, chain verifies
   const env2 = await makeEnv();
   const o2 = await bootstrapOwner(env2);
   await o2.req("PATCH", "/games/project-nova", { body: { tagline: "a" } });
-  env2.DB.db.exec("DROP TRIGGER audit_no_delete; DELETE FROM audit_log WHERE seq = 2");
+  await sql(env2, `${triggers ? "DROP TRIGGER audit_no_delete; " : ""}DELETE FROM audit_log WHERE seq = 2`);
   const gap = await verifyChain(env2);
   assert.equal(gap.ok, false);
   assert.match(gap.broken_at.reason, /gap/);
@@ -143,7 +147,7 @@ test("Tx refuses to write without an audit entry", async () => {
   const tx = new Tx({ env, now: Date.now(), actor: { type: "system" }, txs: [] });
   tx.run("UPDATE games SET title = 'x'");
   await assert.rejects(tx.commit(), /without an audit entry/);
-  assert.notEqual(env.DB.db.prepare("SELECT title FROM games LIMIT 1").get().title, "x");
+  assert.notEqual((await row(env, "SELECT title FROM games LIMIT 1")).title, "x");
 });
 
 test("audit: canonical JSON is key-order independent", () => {
@@ -247,7 +251,7 @@ test("scheduled posts publish themselves when due (audited as the scheduler)", a
   assert.equal(s.data.status, "scheduled");
   const req = () => renderPublic({ request: new Request(ORIGIN + "/news/future-post/"), env });
   assert.equal((await req()).status, 404);
-  env.DB.db.exec(`UPDATE news SET publish_at = ${Date.now() - 1000} WHERE slug = 'future-post'; UPDATE site_state SET value = '${Date.now() - 1000}' WHERE key = 'next_publish_at'`);
+  await sql(env, `UPDATE news SET publish_at = ${Date.now() - 1000} WHERE slug = 'future-post'; UPDATE site_state SET value = '${Date.now() - 1000}' WHERE key = 'next_publish_at'`);
   const { invalidatePublicState } = await import("../lib/admin/state.js");
   invalidatePublicState();
   assert.equal((await req()).status, 200);
@@ -262,7 +266,7 @@ test("analytics collect: no cookies, no IPs, bot-filtered, counted", async () =>
   for (const ev of [{ event: "page_view", path: "/project-nova/" }, { event: "store_click", props: { game: "project-nova", platform: "android" }, path: "/project-nova/" }, { event: "nope" }]) assert.equal((await send(ev)).status, 204);
   await send({ event: "page_view", path: "/" }, { "User-Agent": "Googlebot/2.1" });
   await send({ event: "page_view", path: "/" }, { Origin: "https://evil.example" });
-  const rows = env.DB.db.prepare("SELECT * FROM analytics_events").all();
+  const rows = await allRows(env, "SELECT * FROM analytics_events");
   assert.equal(rows.length, 2);
   assert.equal(rows[0].game, "project-nova", "game derived from the path");
   assert.equal(rows[0].device, "mobile");
@@ -298,4 +302,25 @@ test("OpenAPI 3.1 is generated from the route table and covers every route", asy
   const patch = r.json.paths["/games/{id}"].patch;
   assert.ok(patch.parameters.some((p) => p.name === "X-Dry-Run") && patch.parameters.some((p) => p.name === "If-Match"));
   assert.equal(r.json.paths["/games"].post["x-permission"], "games:create");
+});
+
+test("audit: retention archive moves old entries to storage, purges them (trigger unlock) and re-anchors the chain", async () => {
+  const env = await makeEnv();
+  const old = Date.now() - 40 * 86_400_000;
+  await writeAudit(env, [1, 2, 3].map((i) => makeEntry({ now: old }, { action: "test.old", label: `old ${i}`, ts: old + i })));
+  const owner = await bootstrapOwner(env);
+  assert.equal((await owner.req("PUT", "/audit/retention", { body: { days: 30 } })).status, 200);
+  const r = await owner.req("POST", "/audit/archive");
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.data.archived, 3);
+  assert.equal(r.data.anchor.seq, 3);
+  const obj = await env.MEDIA.get(r.data.r2_key);
+  assert.equal((await obj.text()).trim().split("\n").length, 3);
+  assert.equal((await row(env, "SELECT MIN(seq) AS s FROM audit_log")).s, 4);
+  const v = await owner.req("GET", "/audit/verify");
+  assert.equal(v.data.ok, true, JSON.stringify(v.data));
+  // the unlock flag is closed again: ordinary deletes are still refused (where the server has the trigger)
+  if (env.DB.driver !== "mysql" || Number((await row(env, "SELECT COUNT(*) AS n FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE()")).n)) {
+    await assert.rejects(sql(env, "DELETE FROM audit_log WHERE seq = 4"), /append-only/);
+  }
 });
