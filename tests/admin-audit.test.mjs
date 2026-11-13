@@ -213,9 +213,11 @@ test("public site: rendered from D1, identical to the static build, purge on cha
   assert.equal(home.headers.get("Content-Security-Policy"), PUBLIC_CSP);
   const stat = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
   assert.equal(await home.text(), stat, "byte-identical to tools/build.mjs output");
+  // The sitemap stamps undated pages (/, /press/, games…) with the build day, so ignore those lastmod values.
+  const undated = (s) => s.replace(/(<loc>[^<]*<\/loc>)<lastmod>\d{4}-\d\d-\d\d<\/lastmod>(<priority>(?:1\.0|0\.5|0\.3|0\.9)<\/priority>)/g, "$1<lastmod>*</lastmod>$2");
   for (const p of ["/news/", "/news/hello-world/", "/project-nova/", "/privacy/", "/press/", "/news/feed.xml", "/sitemap.xml"]) {
     const f = p.endsWith("/") ? `../public${p}index.html` : `../public${p}`;
-    assert.equal(await (await req(p)).text(), await readFile(new URL(f, import.meta.url), "utf8"), p);
+    assert.equal(undated(await (await req(p)).text()), undated(await readFile(new URL(f, import.meta.url), "utf8")), p);
   }
   const etag = home.headers.get("ETag");
   assert.equal((await req("/", { "If-None-Match": etag })).status, 304);
