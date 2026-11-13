@@ -1,0 +1,80 @@
+# Deploy to cPanel — OPT-IN. Nothing happens until you switch it on:
+#   GitHub → Settings → Secrets and variables → Actions
+#     Variables:  CPANEL_DEPLOY = ssh   (or ftp)
+#     Secrets (ssh): CPANEL_HOST, CPANEL_USER, CPANEL_SSH_KEY (private key; add the public key in cPanel → SSH Access),
+#                    optional CPANEL_SSH_PORT (default 22), CPANEL_APP_DIR (default ~/tinycomet-app)
+#     Secrets (ftp): CPANEL_FTP_SERVER, CPANEL_FTP_USERNAME, CPANEL_FTP_PASSWORD, optional CPANEL_FTP_DIR (default tinycomet-app/)
+# ssh: runs tools/deploy.sh on the server (git pull → npm install → backup → migrate → restart).
+# ftp: uploads the code, then you click "Run NPM Install" + "Restart" in cPanel (FTP can't run commands).
+# Tests run first; a failing test stops the deploy.
+name: Deploy to cPanel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-cpanel
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    if: vars.CPANEL_DEPLOY == 'ssh' || vars.CPANEL_DEPLOY == 'ftp'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
+
+  deploy-ssh:
+    needs: test
+    if: vars.CPANEL_DEPLOY == 'ssh'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        env:
+          HOST: ${{ secrets.CPANEL_HOST }}
+          USER: ${{ secrets.CPANEL_USER }}
+          KEY: ${{ secrets.CPANEL_SSH_KEY }}
+          PORT: ${{ secrets.CPANEL_SSH_PORT }}
+          APP_DIR: ${{ secrets.CPANEL_APP_DIR }}
+        run: |
+          test -n "$HOST" && test -n "$USER" && test -n "$KEY" || { echo "::error::Set CPANEL_HOST, CPANEL_USER and CPANEL_SSH_KEY secrets"; exit 1; }
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${PORT:-22}" "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/deploy_key -p "${PORT:-22}" "$USER@$HOST" \
+            "cd ${APP_DIR:-~/tinycomet-app} && BRANCH=main bash tools/deploy.sh"
+
+  deploy-ftp:
+    needs: test
+    if: vars.CPANEL_DEPLOY == 'ftp'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload over FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.CPANEL_FTP_SERVER }}
+          username: ${{ secrets.CPANEL_FTP_USERNAME }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          protocol: ftps
+          server-dir: ${{ secrets.CPANEL_FTP_DIR || 'tinycomet-app/' }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            .wrangler/**
+            .dev.vars
+            .env
+            tests/**
+            tmp/**
+      - name: Reminder
+        run: echo "Uploaded. In cPanel → Setup Node.js App click 'Run NPM Install' (if package.json changed), then 'Run JS script → migrate' and 'Restart'."

@@ -1,5 +1,14 @@
 # Copy to .dev.vars for local `npx wrangler pages dev` (never commit .dev.vars).
-# These are Cloudflare's official ALWAYS-PASS TEST keys — replace in production
-# (production values go in Cloudflare dashboard → Pages project → Settings → Variables and Secrets).
+# Everything here is a LOCAL DEV value — production values are set as encrypted secrets in the Cloudflare dashboard
+# (Pages project → Settings → Variables and Secrets) or with `npx wrangler pages secret put NAME`.
+
+# Cloudflare's official ALWAYS-PASS Turnstile TEST secret.
 TURNSTILE_SECRET=1x0000000000000000000000000000000AA
+# Signs play cookies, admin session cookies, CSRF tokens, signed uploads and the audit hash chain.
+# Generate: openssl rand -base64 48
 SIGNING_KEY=local-dev-only-change-me-to-a-long-random-string
+# Encrypts TOTP secrets and webhook secrets at rest (AES-GCM). Generate: openssl rand -base64 32
+ENCRYPTION_KEY=local-dev-only-encryption-key-change-me
+# One-time token for /admin/setup (creating the first owner). Generate: openssl rand -hex 24
+SETUP_TOKEN=local-dev-setup-token-change-me
+ENVIRONMENT=development

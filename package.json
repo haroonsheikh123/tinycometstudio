@@ -1,16 +1,30 @@
 {
   "name": "tinycometstudio",
   "private": true,
-  "description": "Tiny Comet Studio website — static site + Cloudflare Pages Functions. Zero dependencies.",
+  "description": "Tiny Comet Studio website — static site + admin/API. Runs on Node.js (cPanel/Passenger) or Cloudflare Pages Functions.",
   "type": "module",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
+    "start": "node server.mjs",
+    "setup": "node tools/cpanel-setup.mjs",
+    "migrate": "node tools/migrate.mjs",
+    "seed": "node tools/db-seed.mjs --node",
+    "tick": "node tools/tick.mjs",
+    "backup": "node tools/backup.mjs",
     "build": "node tools/build.mjs",
     "check": "node tools/build.mjs --check",
     "new-game": "node tools/new-game.mjs",
     "new-post": "node tools/new-post.mjs",
-    "test": "node --test tests/*.test.mjs",
-    "dev": "npx wrangler pages dev",
+    "test": "node --import ./lib/platform/polyfills.js --test tests/*.test.mjs",
+    "test:mysql": "TEST_DB_DRIVER=mysql node --import ./lib/platform/polyfills.js --test tests/*.test.mjs",
+    "dev": "node --watch server.mjs",
+    "dev:cloudflare": "npx wrangler pages dev",
     "preview": "python3 -m http.server 8000 --directory public"
-  }
+  },
+  "dependencies": {
+    "mysql2": "3.24.6"
+  },
+  "main": "server.mjs"
 }

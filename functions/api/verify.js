@@ -8,6 +8,7 @@
    Optional vars: PLAY_TTL_HOURS (default 4), ALLOWED_HOSTNAMES (comma list). */
 import { PLAY_GAMES } from "../../lib/games.generated.js";
 import { SLUG_RE, json, signTicket, playCookie, ttlSeconds } from "../../lib/play-auth.js";
+import { playableFromD1 } from "../../lib/site-render.js";
 
 const SITEVERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
@@ -28,13 +29,16 @@ export async function onRequestPost({ request, env }) {
   const slug = String(form.get("slug") || "");
   const token = String(form.get("cf-turnstile-response") || "");
   if (!SLUG_RE.test(slug)) return json({ ok: false, error: "bad_request" }, 400);
-  if (!Object.prototype.hasOwnProperty.call(PLAY_GAMES, slug)) return json({ ok: false, error: "not_enabled" }, 404);
+  // Same source of truth as the play gate: the admin's "web play" toggle in the database, else lib/games.generated.js.
+  const d1 = await playableFromD1(env, slug);
+  const playable = d1 !== null ? Boolean(d1) : Object.prototype.hasOwnProperty.call(PLAY_GAMES, slug);
+  if (!playable) return json({ ok: false, error: "not_enabled" }, 404);
   if (!token || token.length > 2048) return json({ ok: false, error: "captcha_failed" }, 400);
 
   const body = new FormData();
   body.append("secret", env.TURNSTILE_SECRET);
   body.append("response", token);
-  const ip = request.headers.get("CF-Connecting-IP");
+  const ip = request.headers.get("CF-Connecting-IP") || request.headers.get("X-Real-IP");
   if (ip) body.append("remoteip", ip);
   body.append("idempotency_key", crypto.randomUUID());
 
